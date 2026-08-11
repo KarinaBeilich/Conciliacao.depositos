@@ -39,9 +39,9 @@ Para executar o script, você precisará de:
 
 ---
 
-## 🚀 Como Executar
+👩‍💻 Autora
+Karina Beilich
 
-### 1. Clocar o Repositório
-```bash
-git clone [https://github.com/KarinaBeilich/Conciliacao.depositos.git](https://github.com/KarinaBeilich/Conciliacao.depositos.git)
-cd Conciliacao.depositos/Desktop/conciliacao.dep
+GitHub: https://github.com/KarinaBeilich
+
+
