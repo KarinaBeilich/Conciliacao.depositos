@@ -27,6 +27,13 @@ O objetivo deste script é identificar divergências, pendências e correspondê
 - **Tratamento de Tolerâncias:** Ajuste para pequenas diferenças operacionais (ex: compensação em D-2; D-1 e D-0).
 
 ---
+# 🖥️ Exemplo de Execução
+
+
+<p align="center">
+ <img width="1204" height="205" alt="modeloCDV1 2" src="https://github.com/user-attachments/assets/5f599ed8-e044-41dc-a7f4-1efcb4a3c137" /> 
+</p>
+
 
 ## 📌 Pré-requisitos
 
@@ -39,9 +46,9 @@ Para executar o script, você precisará de:
 
 ---
 
-## 🚀 Como Executar
+👩‍💻 Autora
+Karina Beilich
 
-### 1. Clocar o Repositório
-```bash
-git clone [https://github.com/KarinaBeilich/Conciliacao.depositos.git](https://github.com/KarinaBeilich/Conciliacao.depositos.git)
-cd Conciliacao.depositos/Desktop/conciliacao.dep
+GitHub: https://github.com/KarinaBeilich
+
+
