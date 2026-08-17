@@ -6,7 +6,6 @@
 </p>
 
 Este projeto contém o script SQL responsável por automatizar o processo de **conciliação bancária e financeira de depósitos**, realizando o cruzamento de dados entre os registros internos do sistema e os extratos/entradas bancárias.
-
 ---
 
 ## 🎯 Objetivo
