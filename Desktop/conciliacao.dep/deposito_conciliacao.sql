@@ -140,7 +140,7 @@ candidatos_individual AS (
        AND t.cedCodigo = c.cedCodigo
        AND t.ingValordeFace = ABS(c.penValorOriginal)
 ),
-
+    
 vencidos_por_grupo AS (
     SELECT
         t.empCodigo,
