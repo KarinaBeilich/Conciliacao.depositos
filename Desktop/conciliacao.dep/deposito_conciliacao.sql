@@ -122,15 +122,24 @@ candidatos_individual AS (
         t.VencimentoReal,
         CASE
             WHEN CONVERT(DATE, t.VencimentoReal) = CONVERT(DATE, c.penData) THEN 'CREDITO COMPATIVEL'
-            WHEN c.penData BETWEEN DATEADD(DAY, -2, t.VencimentoReal) AND DATEADD(DAY, 3, t.VencimentoReal) THEN 'POSSÍVEL LIQUIDAÇÃO'
+            WHEN DATENAME(WEEKDAY, c.penData) IN ('Tuesday', 'terça-feira', 'terca-feira')
+                 AND CONVERT(DATE, t.VencimentoReal) BETWEEN DATEADD(DAY, -3, CONVERT(DATE, c.penData)) AND CONVERT(DATE, c.penData)
+                 THEN 'POSSÍVEL LIQUIDAÇÃO'
+            WHEN CONVERT(DATE, t.VencimentoReal) BETWEEN DATEADD(DAY, -2, CONVERT(DATE, c.penData)) AND CONVERT(DATE, c.penData)
+                 THEN 'POSSÍVEL LIQUIDAÇÃO'
             ELSE 'FORA DA DATA - VERIFICAR'
         END AS Status_Match,
         ROW_NUMBER() OVER (
             PARTITION BY c.penCodigo
             ORDER BY
-                CASE WHEN CONVERT(DATE, t.VencimentoReal) = CONVERT(DATE, c.penData) THEN 0
-                     WHEN c.penData BETWEEN DATEADD(DAY, -2, t.VencimentoReal) AND t.VencimentoReal THEN 1
-                     ELSE 2
+                CASE 
+                    WHEN CONVERT(DATE, t.VencimentoReal) = CONVERT(DATE, c.penData) THEN 0
+                    
+                    WHEN DATENAME(WEEKDAY, c.penData) IN ('Tuesday', 'terça-feira', 'terca-feira')
+                         AND CONVERT(DATE, t.VencimentoReal) BETWEEN DATEADD(DAY, -3, CONVERT(DATE, c.penData)) AND CONVERT(DATE, c.penData) THEN 1
+                    WHEN CONVERT(DATE, t.VencimentoReal) BETWEEN DATEADD(DAY, -2, CONVERT(DATE, c.penData)) AND CONVERT(DATE, c.penData) THEN 1
+                    
+                    ELSE 2
                 END,
                 ABS(DATEDIFF(DAY, t.VencimentoReal, c.penData))
         ) AS RankCandidato
@@ -139,6 +148,7 @@ candidatos_individual AS (
         ON t.empCodigo = c.empCodigo
        AND t.cedCodigo = c.cedCodigo
        AND t.ingValordeFace = ABS(c.penValorOriginal)
+       AND CONVERT(DATE, t.VencimentoReal) <= CONVERT(DATE, c.penData) 
 ),
     
 vencidos_por_grupo AS (
