@@ -1,7 +1,6 @@
 SET NOCOUNT ON;
 
-
-DECLARE @dt NVARCHAR(10) = '01/01/2026'; 
+DECLARE @dt NVARCHAR(10) = '" & ParamDate & "';
 DECLARE @rcpCodigo INT = NULL;
 
 WITH idg_permitidos AS (
@@ -18,29 +17,30 @@ WITH idg_permitidos AS (
         ('226001'),('226011'),('226017'),('226031'),('226109'),('227501'),('227801'),('227817'),
         ('228301'),('228317'),('228717'),('230801'),('230831'),('241601'),('241611'),('246611'),
         ('401601'),('401692'),('411601'),('411611'),('421601'),('421611'),('421692'),('422301'),
-        ('422392'),('550401'),('550411'),('550430'),('550481'),('550801'),('550807'),('550808'),
-        ('550809'),('550811'),('550817'),('550870'),('550882'),('551109'),('551111'),('551117'),
-        ('551181'),('551401'),('551411'),('551481'),('551601'),('555101'),('555111'),('555311'),
-        ('555361'),('559901'),('660401'),('660411'),('660430'),('660493'),('660511'),('660701'),
-        ('660709'),('660711'),('660731'),('660793'),('660801'),('660802'),('660809'),('660811'),
-        ('660817'),('660870'),('661001'),('661104'),('661109'),('661111'),('661117'),('661125'),
-        ('661401'),('661411'),('661601'),('661611'),('661717'),('662009'),('662011'),('662017'),
-        ('662301'),('662311'),('662317'),('662401'),('662411'),('664101'),('664130'),('664201'),
-        ('664231'),('664301'),('664311'),('664330'),('665101'),('665111'),('665192'),('665601'),
-        ('665611'),('666401'),('666430'),('667901'),('667911'),('667930'),('668001'),('668011'),
-        ('669501'),('910801'),('910870'),('920801'),('920811'),('920870'),('930801'),('930870')
+        ('422392'),('550401'),('550411'),('550430'),('550801'),('550807'),('550808'),('550809'),
+        ('550811'),('550817'),('550870'),('550882'),('551109'),('551111'),('551117'),('551181'),
+        ('551401'),('551411'),('551481'),('551601'),('555101'),('555111'),('555311'),('555361'),
+        ('559901'),('660401'),('660411'),('660430'),('660493'),('660511'),('660701'),('660709'),
+        ('660711'),('660731'),('660793'),('660801'),('660802'),('660809'),('660811'),('660817'),
+        ('660870'),('661001'),('661104'),('661109'),('661111'),('661117'),('661125'),('661401'),
+        ('661411'),('661601'),('661611'),('661717'),('662009'),('662011'),('662017'),('662301'),
+        ('662311'),('662317'),('662401'),('662411'),('664101'),('664130'),('664201'),('664231'),
+        ('664301'),('664311'),('664330'),('665101'),('665111'),('665192'),('665601'),('665611'),
+        ('666401'),('666430'),('667901'),('667911'),('667930'),('668001'),('668011'),('669501'),
+        ('910801'),('910870'),('920801'),('920811'),('920870'),('930801'),('930870')
     ) AS t(codigo)
 ),
 
 feriados AS (
     SELECT DISTINCT CONVERT(DATE, ferData) AS ferData
-    FROM NOME_DO_BANCO.dbo.nfFeriado
+    FROM NomeDoServidor.nfFeriado
 ),
 
 vencimentos_base AS (
     SELECT DISTINCT CONVERT(DATE, ing.ingVencimento) AS vencOriginal
-    FROM NOME_DO_BANCO.dbo.nfIngressos ing
-    WHERE EXISTS (
+    FROM NomeDoServidor.nfIngressos ing
+    WHERE ing.ingDataLiquidacao IS NULL
+      AND EXISTS (
         SELECT 1 FROM idg_permitidos ip
         WHERE RIGHT('000000' + LTRIM(RTRIM(ip.codigo)), 6) = RIGHT('000000' + LTRIM(RTRIM(ing.idgCodigo)), 6)
     )
@@ -74,9 +74,11 @@ vencimento_real AS (
 creditos AS (
     SELECT
         p.penCodigo, p.empCodigo, p.cedCodigo, p.penValorOriginal,
-        p.penData, p.eveCodigo, p.penComplemento, p.rcpCodigo
-    FROM NOME_DO_BANCO.dbo.nfPendencia p
-    WHERE p.eveCodigo IN (18,118,811)
+        p.penData, p.eveCodigo, p.penComplemento, p.rcpCodigo,
+        rp.rcpAtualizado
+    FROM NomeDoServidor.nfPendencia p
+    LEFT JOIN NomeDoServidor.nfReciboPendencia rp ON rp.rcpCodigo = p.rcpCodigo AND rp.empCodigo = p.empCodigo
+    WHERE p.eveCodigo IN (18, 5071)
       AND (
             (@rcpCodigo IS NOT NULL AND p.rcpCodigo = @rcpCodigo)
             OR (@rcpCodigo IS NULL AND CONVERT(VARCHAR(10), p.penData, 103) = REPLACE(@dt, '-', '/'))
@@ -96,13 +98,14 @@ titulos AS (
         foc.fneDescricao,
         tpp.tpaDescricao,
         sit.sitDescricao
-    FROM NOME_DO_BANCO.dbo.nfIngressos ing
+    FROM NomeDoServidor.nfIngressos ing
     LEFT JOIN vencimento_real vr ON vr.vencOriginal = CONVERT(DATE, ing.ingVencimento)
-    LEFT JOIN NOME_DO_BANCO.dbo.nfIdentificadorGlobal idg ON idg.idgCodigo = ing.idgCodigo
-    LEFT JOIN NOME_DO_BANCO.dbo.nfFocoNegocio foc ON foc.fneCodigo = idg.fneCodigo
-    LEFT JOIN NOME_DO_BANCO.dbo.nfTipoPapel tpp ON tpp.tpaCodigo = idg.tpaCodigo
-    LEFT JOIN NOME_DO_BANCO.dbo.nfSituacao sit ON sit.sitCodigo = idg.sitCodigo
-    WHERE EXISTS (
+    LEFT JOIN NomeDoServidor.nfIdentificadorGlobal idg ON idg.idgCodigo = ing.idgCodigo
+    LEFT JOIN NomeDoServidor.nfFocoNegocio foc ON foc.fneCodigo = idg.fneCodigo
+    LEFT JOIN NomeDoServidor.nfTipoPapel tpp ON tpp.tpaCodigo = idg.tpaCodigo
+    LEFT JOIN NomeDoServidor.nfSituacao sit ON sit.sitCodigo = idg.sitCodigo
+    WHERE ing.ingDataLiquidacao IS NULL
+      AND EXISTS (
         SELECT 1 FROM idg_permitidos ip
         WHERE RIGHT('000000' + LTRIM(RTRIM(ip.codigo)), 6) = RIGHT('000000' + LTRIM(RTRIM(ing.idgCodigo)), 6)
     )
@@ -129,16 +132,15 @@ candidatos_individual AS (
                  THEN 'POSSÍVEL LIQUIDAÇÃO'
             ELSE 'FORA DA DATA - VERIFICAR'
         END AS Status_Match,
+
         ROW_NUMBER() OVER (
             PARTITION BY c.penCodigo
             ORDER BY
                 CASE 
                     WHEN CONVERT(DATE, t.VencimentoReal) = CONVERT(DATE, c.penData) THEN 0
-                    
                     WHEN DATENAME(WEEKDAY, c.penData) IN ('Tuesday', 'terça-feira', 'terca-feira')
                          AND CONVERT(DATE, t.VencimentoReal) BETWEEN DATEADD(DAY, -3, CONVERT(DATE, c.penData)) AND CONVERT(DATE, c.penData) THEN 1
                     WHEN CONVERT(DATE, t.VencimentoReal) BETWEEN DATEADD(DAY, -2, CONVERT(DATE, c.penData)) AND CONVERT(DATE, c.penData) THEN 1
-                    
                     ELSE 2
                 END,
                 ABS(DATEDIFF(DAY, t.VencimentoReal, c.penData))
@@ -148,9 +150,9 @@ candidatos_individual AS (
         ON t.empCodigo = c.empCodigo
        AND t.cedCodigo = c.cedCodigo
        AND t.ingValordeFace = ABS(c.penValorOriginal)
-       AND CONVERT(DATE, t.VencimentoReal) <= CONVERT(DATE, c.penData) 
+       AND CONVERT(DATE, t.VencimentoReal) <= CONVERT(DATE, c.penData)
 ),
-    
+
 vencidos_por_grupo AS (
     SELECT
         t.empCodigo,
@@ -178,19 +180,44 @@ SELECT
     pesced.pesNome AS Cedente,
     FORMAT(c.penData, 'dd-MM-yyyy') AS penData,
     c.penValorOriginal AS ValorDep,
+    c.penComplemento AS [Descrição],
     c.rcpCodigo AS Recibo_Gerado,
-    cand.Status_Match AS Status_Individual,
-    cand.ingDocumento AS Doc_Individual,
-    FORMAT(cand.VencimentoReal, 'dd-MM-yyyy') AS Vencimento_Real_Individual,
+    IIF(c.rcpAtualizado = 1, 'Sim', '') AS ReciboEfetivado,
+    
     CASE 
+        WHEN ISNULL(c.rcpCodigo, 0) <> 0 THEN NULL 
+        ELSE cand.Status_Match 
+    END AS Status_Individual,
+    
+    CASE 
+        WHEN ISNULL(c.rcpCodigo, 0) <> 0 THEN NULL 
+        ELSE cand.ingDocumento 
+    END AS Doc_Individual,
+    
+    CASE 
+        WHEN ISNULL(c.rcpCodigo, 0) <> 0 THEN NULL 
+        ELSE FORMAT(cand.VencimentoReal, 'dd-MM-yyyy') 
+    END AS Vencimento_Real_Individual,
+    
+    CASE 
+        WHEN ISNULL(c.rcpCodigo, 0) <> 0 THEN NULL
         WHEN vgm.TotalVencidos IS NOT NULL THEN 'LIQUIDAR ' + CAST(vgm.QtdVencidos AS VARCHAR) + ' VENCIDO(S) DO GRUPO (IDG ' + vgm.idgCodigo + ' - ' + ISNULL(vgm.fneDescricao,'') + ')'
     END AS Status_TotalVencidos,
-    vgm.TotalVencidos AS TotalVencidos_Grupo,
-    vgm.QtdVencidos AS QtdVencidos_Grupo
+    
+    CASE 
+        WHEN ISNULL(c.rcpCodigo, 0) <> 0 THEN NULL 
+        ELSE vgm.TotalVencidos 
+    END AS TotalVencidos_Grupo,
+    
+    CASE 
+        WHEN ISNULL(c.rcpCodigo, 0) <> 0 THEN NULL 
+        ELSE vgm.QtdVencidos 
+    END AS QtdVencidos_Grupo
+
 FROM creditos c
-LEFT JOIN NOME_DO_BANCO.dbo.nfCedente ced ON ced.cedCodigo = c.cedCodigo AND ced.empCodigo = c.empCodigo
-LEFT JOIN NOME_DO_BANCO.dbo.nfPessoa pesced ON pesced.pesCNPJCPF = ced.pesCNPJCPF
-LEFT JOIN NOME_DO_BANCO.dbo.nfEmpresa emp ON emp.empCodigo = c.empCodigo
+LEFT JOIN NomeDoServidor.nfCedente ced ON ced.cedCodigo = c.cedCodigo AND ced.empCodigo = c.empCodigo
+LEFT JOIN NomeDoServidor.nfPessoa pesced ON pesced.pesCNPJCPF = ced.pesCNPJCPF
+LEFT JOIN NomeDoServidor.nfEmpresa emp ON emp.empCodigo = c.empCodigo
 LEFT JOIN candidatos_individual cand ON cand.penCodigo = c.penCodigo AND cand.RankCandidato = 1
 OUTER APPLY (
     SELECT TOP 1 vg.*
