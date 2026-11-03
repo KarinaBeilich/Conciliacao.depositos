@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Backoffice - Conciliação de Depósitos</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { display: flex; height: 100vh; background-color: #f4f6f9; color: #333; }
+        
+        /* Barra Lateral */
+        aside { width: 260px; background-color: #ffffff; color: #1e293b; display: flex; flex-direction: column; border-right: 1px solid #e2e8f0; transition: width 0.3s ease; overflow: hidden; }
+        
+        /* Estado Minimizado da Barra Lateral */
+        aside.collapsed { width: 80px; }
+        aside.collapsed .logo-text,
+        aside.collapsed .logo-left img,
+        aside.collapsed .menu-item-text,
+        aside.collapsed .submenu,
+        aside.collapsed .arrow-icon,
+        aside.collapsed .user-details,
+        aside.collapsed .footer-actions { display: none !important; }
+        
+        aside.collapsed .logo-area { justify-content: center; padding: 20px 10px; }
+        aside.collapsed .menu li a { justify-content: center; padding: 12px; }
+        aside.collapsed .sidebar-footer { justify-content: center; padding: 15px 10px; }
+
+        .logo-area { padding: 20px; font-size: 1.1rem; font-weight: bold; background-color: #ffffff; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f1f5f9; }
+        .logo-left { display: flex; align-items: center; gap: 10px; }
+        .sidebar-icon-btn { background: none; border: 1px solid #cbd5e1; border-radius: 4px; padding: 4px 6px; cursor: pointer; color: #64748b; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        .sidebar-icon-btn:hover { background-color: #f1f5f9; color: #1e293b; }
+        
+        /* Menu e Submenus */
+        .menu { list-style: none; padding: 15px 10px; flex: 1; overflow-y: auto; }
+        .menu li { margin-bottom: 4px; }
+        .menu li a { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; color: #334155; text-decoration: none; border-radius: 6px; font-size: 0.9rem; font-weight: 500; transition: 0.2s; }
+        .menu li a:hover { background-color: #f8fafc; color: #DC4405; }
+        
+        .menu-item-content { display: flex; align-items: center; gap: 10px; }
+        
+        /* Item ativo / Expandido */
+        .menu li.active > a, .menu li a.active { background-color: #fff5f0; color: #DC4405; font-weight: 600; }
+        
+        /* Submenu */
+        .submenu { list-style: none; padding-left: 20px; margin-top: 4px; border-left: 2px solid #f1f5f9; margin-left: 15px; }
+        .submenu li a { padding: 8px 12px; font-size: 0.85rem; color: #64748b; }
+        .submenu li a:hover, .submenu li a.active { background-color: #fff5f0; color: #DC4405; border-left: none; }
+
+        /* Rodapé da Barra Lateral (Perfil) */
+        .sidebar-footer { padding: 15px 20px; border-top: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; background-color: #fff; }
+        .user-profile { display: flex; align-items: center; gap: 10px; }
+        .user-avatar { width: 35px; height: 35px; background-color: #ffedd5; color: #DC4405; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.85rem; }
+        .user-details .user-name { font-size: 0.85rem; font-weight: bold; color: #1e293b; }
+        .user-details .user-role { font-size: 0.75rem; color: #64748b; }
+        .footer-actions { display: flex; gap: 8px; color: #64748b; }
+        .footer-actions svg, .footer-actions span { cursor: pointer; }
+
+        /* Conteúdo Principal */
+        main { flex: 1; display: flex; flex-direction: column; overflow-y: auto; }
+        header { background: #fff; padding: 15px 30px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+        .header-user { font-size: 0.9rem; color: #64748b; }
+
+        .container { padding: 30px; }
+        .section-title { font-size: 1.4rem; color: #1e293b; margin-bottom: 5px; font-weight: bold; }
+        .subtitle { font-size: 0.9rem; color: #64748b; margin-bottom: 20px; }
+
+        /* Barra de Ações / Filtros rápidos */
+    .toolbar { display: flex; gap: 10px; margin-bottom: 15px; }
+    .btn { padding: 8px 16px; border: 1px solid #cbd5e1; background: #fff; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 0.85rem; color: #334155; }
+    
+    .btn-primary { background: #DC4405; color: #fff; border: none; }
+    
+    /* Faz apenas os botões de filtro ficarem laranjas quando abertos */
+    .filter-control .btn[aria-expanded="true"] {
+        background-color: #DC4405 !important;
+        color: #ffffff !important;
+        border-color: #DC4405 !important;
+    }
+
+    .filter-control { position: relative; }
+    .filter-popover { position: absolute; top: calc(100% + 6px); left: 0; z-index: 10; min-width: 190px; padding: 12px; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+    .filter-popover[hidden] { display: none; }
+    .date-popover label { display: block; margin-bottom: 6px; color: #475569; font-size: 0.8rem; font-weight: 600; }
+    .date-popover input { width: 100%; padding: 7px; border: 1px solid #cbd5e1; border-radius: 4px; color: #334155; }
+    .fund-options { display: flex; flex-direction: column; gap: 2px; }
+    .fund-option { padding: 8px 10px; border: 0; border-radius: 4px; background: #fff; color: #334155; cursor: pointer; font-size: 0.9rem; text-align: left; }
+    .fund-option:hover, .fund-option[aria-pressed="true"] { background: #fff5f0; color: #DC4405; }
+
+        /* Tabela */
+        .table-container { background: #fff; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); width: 100%; margin-top: 10px; overflow: hidden; }
+        .table-header-bar { background: #DC4405; color: #fff; padding: 12px 20px; font-weight: 600; font-size: 0.95rem; width: 100%; }
+        
+        .table-scroll { width: 100%; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem; min-width: 900px; }
+        th, td { padding: 12px 15px; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
+        th { background-color: #f8fafc; color: #475569; font-weight: 600; }
+        tr:hover { background-color: #f1f5f9; }
+        
+        .badge-analisar { background-color: #dc46052c; color: #DC4405; padding: 4px 8px; border-radius: 12px; font-weight: 600; }
+        .badge-pendente { background-color: hsl(204, 94%, 94%); color: #0284c7; padding: 4px 8px; border-radius: 12px; font-weight: 600; }
+        .document-link { color: #DC4405; font-weight: 600; text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+    <!-- Menu Lateral Completo -->
+    <aside id="sidebar">
+        <div class="logo-area">
+            <div class="logo-left">
+                <img src="/imagens/invbackoffice.png" alt="Logo Backoffice" style="width: 30px; height: 30px; object-fit: contain;">
+                <span class="logo-text">Backoffice</span>
+            </div>
+            <!-- Botão que aciona a função de alternar o menu -->
+            <button class="sidebar-icon-btn" onclick="toggleSidebar()" title="Minimizar Menu">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
+            </button>
+        </div>
+
+        <ul class="menu">
+            <li>
+                <a href="#">
+                    <div class="menu-item-content">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                        <span class="menu-item-text">Início</span>
+                    </div>
+                </a>
+            </li>
+            <li class="active">
+                <a href="#" class="active">
+                    <div class="menu-item-content">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                        <span class="menu-item-text">Cobrança</span>
+                    </div>
+                    <svg class="arrow-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                </a>
+                <ul class="submenu">
+                    <li><a href="#">Remessa</a></li>
+                    <li><a href="#" >Cálculos</a></li>
+                    <li><a href="#" class="active">Conciliação De Depósitos</a></li>
+                    <li><a href="/titulos-abertos" class="menu-item">Em Abertos</a></li>
+                </ul>
+            </li>
+            <li>
+                <a href="#">
+                    <div class="menu-item-content">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+                        <span class="menu-item-text">Tools</span>
+                    </div>
+                    <svg class="arrow-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </a>
+            </li>
+        </ul>
+
+        <!-- Perfil na parte inferior da barra lateral -->
+        <div class="sidebar-footer">
+            <div class="user-profile">
+                <div class="user-avatar">KG</div>
+                <div class="user-details">
+                    <div class="user-name">Karina Gonçalves</div>
+                    <div class="user-role">Analista Cobrança</div>
+                </div>
+            </div>
+            <div class="footer-actions">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Conteúdo Principal -->
+    <main>
+        <header>
+            <h3>Painel de Conciliação</h3>
+            <div class="header-user"></div>
+        </header>
+
+        <div class="container">
+            <h2 class="section-title" id="section-title">(TV1) Depósitos em Aberto</h2>
+            <div class="subtitle" id="selected-date">A partir de 23/10/2026</div>
+
+            <div class="toolbar">
+                <button class="btn btn-primary" id="update-button">Atualizar</button>
+                <div class="filter-control">
+                    <button class="btn" id="date-button" type="button" aria-expanded="false" aria-controls="date-popover">Data</button>
+                    <div class="filter-popover date-popover" id="date-popover" hidden>
+                        <label for="date-input">Selecione uma data</label>
+                        <input id="date-input" type="date" value="2026-10-23">
+                    </div>
+                </div>
+                <div class="filter-control">
+                    <button class="btn" id="fund-button" type="button" aria-expanded="false" aria-controls="fund-popover">Fundo</button>
+                    <div class="filter-popover" id="fund-popover" hidden>
+                        <div class="fund-options" role="group" aria-label="Selecione um fundo">
+                            <button class="fund-option" type="button" aria-pressed="false">FAC</button>
+                            <button class="fund-option" type="button" aria-pressed="false">ICF</button>
+                            <button class="fund-option" type="button" aria-pressed="false">IMB</button>
+                            <button class="fund-option" type="button" aria-pressed="false">FN3</button>
+                            <button class="fund-option" type="button" aria-pressed="false">MHY</button>
+                            <button class="fund-option" type="button" aria-pressed="false">GEN</button>
+                            <button class="fund-option" type="button" aria-pressed="false">SEC</button>
+                            <button class="fund-option" type="button" aria-pressed="true">TV1</button>
+                            <button class="fund-option" type="button" aria-pressed="true">Todos</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabela corrigida para a barra laranja ocupar 100% -->
+            <div class="table-container">
+                <div class="table-header-bar">Vencimentos nos últimos 4 dias úteis</div>
+                <div class="table-scroll">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Data De Pendência</th>
+                                <th>Cedente</th>
+                                <th>CNPJ/CPF</th>
+                                <th>Codigo De Pendência</th>
+                                <th>Valor Original</th>
+                                <th>Total CG</th>
+                                <th>Vencidos Carteira</th>
+                                <th>Fomento</th>
+                                <th>Comissaria</th>
+                                <th>Documento</th>
+                                <th>Ticket</th>
+                                <th>Status</th>
+                                <th>Observações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="item : ${conciliacoes}">
+                                <td th:text="${item.penData}">28/10/2026</td>
+                                <td th:text="${item.cedente}">Cedente Exemplo</td>
+                                <td th:text="${item.cnpjCpf}">00.000.000/0001-00</td>
+                                <td th:text="${item.penCodigo}">4753185</td>
+                                <td th:text="'R$ ' + ${item.penValorOriginal}">R$ 0,00</td>
+                                <td th:text="'R$ ' + ${item.total}">R$ 0,00</td>
+                                <td th:text="'R$ ' + ${item.vencidos}">R$ 0,00</td>
+                                <td th:text="'R$ ' + ${item.fomento}">R$ 0,00</td>
+                                <td th:text="'R$ ' + ${item.comissaria}">R$ 0,00</td>
+                                <td>
+                                    <a class="document-link" th:if="${!#strings.isEmpty(item.documento)}"
+                                       th:href="@{/titulos-abertos(documento=${item.documento})}"
+                                       th:text="${item.documento}">Documento</a>
+                                </td>
+                                <td th:text="${item.ticket}">Ticket</td>
+                                <td>
+                                    <span th:class="${item.status == 'Analisar'} ? 'badge-analisar' : 'badge-pendente'" 
+                                          th:text="${item.status}">Status</span>
+                                </td>
+                                <td th:text="${item.obs}">Obs exemplo</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('collapsed');
+        }
+
+        const dateButton = document.getElementById('date-button');
+        const datePopover = document.getElementById('date-popover');
+        const dateInput = document.getElementById('date-input');
+        const fundButton = document.getElementById('fund-button');
+        const fundPopover = document.getElementById('fund-popover');
+        const updateButton = document.getElementById('update-button');
+
+        updateButton.addEventListener('click', () => {
+            updateButton.classList.add('btn-primary');
+        });
+
+        function setPopoverOpen(button, popover, isOpen) {
+            popover.hidden = !isOpen;
+            button.setAttribute('aria-expanded', String(isOpen));
+        }
+
+        function filtrarPorDataSelecionada() {
+            const dataSelecionada = dateInput.value;
+            const linhas = document.querySelectorAll('.table-scroll tbody tr');
+
+            linhas.forEach((linha) => {
+                const primeiraCelula = linha.querySelector('td');
+                const textoData = primeiraCelula ? primeiraCelula.textContent.trim() : '';
+                const correspondencia = textoData.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+                const dataDaLinha = correspondencia
+                    ? `${correspondencia[3]}-${correspondencia[2]}-${correspondencia[1]}`
+                    : '';
+
+                linha.style.display = !dataSelecionada || dataDaLinha === dataSelecionada ? '' : 'none';
+            });
+        }
+
+            dateButton.addEventListener('click', () => {
+        const isOpen = datePopover.hidden;
+        setPopoverOpen(dateButton, datePopover, isOpen);
+        setPopoverOpen(fundButton, fundPopover, false);
+        updateButton.classList.remove('btn-primary');
+        });
+
+        dateInput.addEventListener('change', () => {
+            if (!dateInput.value) {
+                document.getElementById('selected-date').textContent = 'Selecione uma data';
+                filtrarPorDataSelecionada();
+                setPopoverOpen(dateButton, datePopover, false);
+                return;
+            }
+
+            const [year, month, day] = dateInput.value.split('-');
+            document.getElementById('selected-date').textContent = `Data selecionada: ${day}/${month}/${year}`;
+            filtrarPorDataSelecionada();
+            setPopoverOpen(dateButton, datePopover, false);
+        });
+
+        fundButton.addEventListener('click', () => {
+            const isOpen = fundPopover.hidden;
+            setPopoverOpen(fundButton, fundPopover, isOpen);
+            setPopoverOpen(dateButton, datePopover, false);
+        });
+
+        fundPopover.addEventListener('click', (event) => {
+            const option = event.target.closest('.fund-option');
+            if (!option) {
+                return;
+            }
+
+            fundPopover.querySelectorAll('.fund-option').forEach((fundOption) => {
+                fundOption.setAttribute('aria-pressed', String(fundOption === option));
+            });
+            document.getElementById('section-title').textContent = `(${option.textContent.trim()}) Depósitos em Aberto`;
+            setPopoverOpen(fundButton, fundPopover, false);
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!event.target.closest('.filter-control')) {
+                setPopoverOpen(dateButton, datePopover, false);
+                setPopoverOpen(fundButton, fundPopover, false);
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                setPopoverOpen(dateButton, datePopover, false);
+                setPopoverOpen(fundButton, fundPopover, false);
+            }
+        });
+    </script>
+
+</body>
+</html>

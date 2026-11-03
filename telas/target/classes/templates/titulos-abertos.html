@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Backoffice - Títulos em Aberto</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { display: flex; height: 100vh; background-color: #f4f6f9; color: #333; }
+        
+        /* Barra Lateral */
+        aside { width: 260px; background-color: #ffffff; color: #1e293b; display: flex; flex-direction: column; border-right: 1px solid #e2e8f0; transition: width 0.3s ease; overflow: hidden; }
+        
+        /* Estado Minimizado da Barra Lateral */
+        aside.collapsed { width: 80px; }
+        aside.collapsed .logo-text,
+        aside.collapsed .logo-left img,
+        aside.collapsed .menu-item-text,
+        aside.collapsed .submenu,
+        aside.collapsed .arrow-icon,
+        aside.collapsed .user-details,
+        aside.collapsed .footer-actions { display: none !important; }
+        
+        aside.collapsed .logo-area { justify-content: center; padding: 20px 10px; }
+        aside.collapsed .menu li a { justify-content: center; padding: 12px; }
+        aside.collapsed .sidebar-footer { justify-content: center; padding: 15px 10px; }
+
+        .logo-area { padding: 20px; font-size: 1.1rem; font-weight: bold; background-color: #ffffff; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f1f5f9; }
+        .logo-left { display: flex; align-items: center; gap: 10px; }
+        .sidebar-icon-btn { background: none; border: 1px solid #cbd5e1; border-radius: 4px; padding: 4px 6px; cursor: pointer; color: #64748b; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        .sidebar-icon-btn:hover { background-color: #f1f5f9; color: #1e293b; }
+        
+        /* Menu e Submenus */
+        .menu { list-style: none; padding: 15px 10px; flex: 1; overflow-y: auto; }
+        .menu li { margin-bottom: 4px; }
+        .menu li a { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; color: #334155; text-decoration: none; border-radius: 6px; font-size: 0.9rem; font-weight: 500; transition: 0.2s; }
+        .menu li a:hover { background-color: #f8fafc; color: #DC4405; }
+        
+        .menu-item-content { display: flex; align-items: center; gap: 10px; }
+        
+        /* Item ativo / Expandido */
+        .menu li.active > a, .menu li a.active { background-color: #fff5f0; color: #DC4405; font-weight: 600; }
+        
+        /* Submenu */
+        .submenu { list-style: none; padding-left: 20px; margin-top: 4px; border-left: 2px solid #f1f5f9; margin-left: 15px; }
+        .submenu li a { padding: 8px 12px; font-size: 0.85rem; color: #64748b; }
+        .submenu li a:hover, .submenu li a.active { background-color: #fff5f0; color: #DC4405; border-left: none; }
+
+        /* Rodapé da Barra Lateral (Perfil) */
+        .sidebar-footer { padding: 15px 20px; border-top: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; background-color: #fff; }
+        .user-profile { display: flex; align-items: center; gap: 10px; }
+        .user-avatar { width: 35px; height: 35px; background-color: #ffedd5; color: #DC4405; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.85rem; }
+        .user-details .user-name { font-size: 0.85rem; font-weight: bold; color: #1e293b; }
+        .user-details .user-role { font-size: 0.75rem; color: #64748b; }
+        .footer-actions { display: flex; gap: 8px; color: #64748b; }
+        .footer-actions svg, .footer-actions span { cursor: pointer; }
+
+        /* Conteúdo Principal */
+        main { flex: 1; display: flex; flex-direction: column; overflow-y: auto; }
+        header { background: #fff; padding: 15px 30px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+        .header-user { font-size: 0.9rem; color: #64748b; }
+
+        .container { padding: 30px; }
+        .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 5px; }
+        .section-title { font-size: 1.4rem; color: #1e293b; font-weight: bold; }
+        .subtitle { font-size: 0.9rem; color: #64748b; margin-bottom: 20px; }
+
+        /* Barra de Ações / Filtros rápidos */
+        .filter-toolbar { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-bottom: 15px; }
+        .cedente-filter { width: 300px; max-width: 100%; }
+        .toolbar { display: flex; gap: 10px; }
+        .btn { padding: 8px 16px; border: 1px solid #cbd5e1; background: #fff; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 0.85rem; color: #334155; }
+        .btn-primary { background: #DC4405; color: #fff; border: none; }
+        
+        .filter-control .btn[aria-expanded="true"] {
+            background-color: #DC4405 !important;
+            color: #ffffff !important;
+            border-color: #DC4405 !important;
+        }
+
+        .filter-control { position: relative; }
+        .filter-popover { position: absolute; top: calc(100% + 6px); left: 0; z-index: 10; min-width: 190px; padding: 12px; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+        .filter-popover[hidden] { display: none; }
+        .date-popover label { display: block; margin-bottom: 6px; color: #475569; font-size: 0.8rem; font-weight: 600; }
+        .date-popover input { width: 100%; padding: 7px; border: 1px solid #cbd5e1; border-radius: 4px; color: #334155; }
+        .fund-options { display: flex; flex-direction: column; gap: 2px; }
+        .fund-option { padding: 8px 10px; border: 0; border-radius: 4px; background: #fff; color: #334155; cursor: pointer; font-size: 0.9rem; text-align: left; }
+        .fund-option:hover, .fund-option[aria-pressed="true"] { background: #fff5f0; color: #DC4405; }
+
+        /* Tabela */
+        .table-container { background: #fff; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); width: 100%; margin-top: 10px; overflow: hidden; }
+        .table-header-bar { background: #DC4405; color: #fff; padding: 12px 20px; font-weight: 600; font-size: 0.95rem; width: 100%; }
+        
+        .table-scroll { width: 100%; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem; min-width: 1400px; }
+        th, td { padding: 12px 15px; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
+        th { background-color: #f8fafc; color: #475569; font-weight: 600; }
+        tr:hover { background-color: #f1f5f9; }
+    </style>
+</head>
+<body>
+
+    <!-- Menu Lateral Completo -->
+    <aside id="sidebar">
+        <div class="logo-area">
+            <div class="logo-left">
+                <img src="/imagens/invbackoffice.png" alt="Logo Backoffice" style="width: 30px; height: 30px; object-fit: contain;">
+                <span class="logo-text">Backoffice</span>
+            </div>
+            <button class="sidebar-icon-btn" onclick="toggleSidebar()" title="Minimizar Menu">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
+            </button>
+        </div>
+
+        <ul class="menu">
+            <li>
+                <a href="#">
+                    <div class="menu-item-content">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                        <span class="menu-item-text">Início</span>
+                    </div>
+                </a>
+            </li>
+            
+            <li class="active">
+                <a href="#" class="active">
+                    <div class="menu-item-content">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                        <span class="menu-item-text">Cobrança</span>
+                    </div>
+                    <svg class="arrow-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                </a>
+                <ul class="submenu">
+                    <li><a href="#">Remessa</a></li>
+                    <li><a href="#">Cálculos</a></li>
+                    <li><a href="/conciliacao">Conciliação De Depósitos</a></li>
+                    <li><a href="/titulos-abertos" class="active">Em Abertos</a></li>
+                </ul>
+            </li>
+            <li>
+                <a href="#">
+                    <div class="menu-item-content">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+                        <span class="menu-item-text">Tools</span>
+                    </div>
+                    <svg class="arrow-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </a>
+            </li>
+        </ul>
+
+        <!-- Perfil na parte inferior da barra lateral -->
+        <div class="sidebar-footer">
+            <div class="user-profile">
+                <div class="user-avatar">KG</div>
+                <div class="user-details">
+                    <div class="user-name">Karina Gonçalves</div>
+                    <div class="user-role">Analista Cobrança</div>
+                </div>
+            </div>
+            <div class="footer-actions">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Conteúdo Principal -->
+    <main>
+        <header>
+            <h3>Painel de Títulos em Aberto</h3>
+            <div class="header-user"></div>
+        </header>
+
+        <div class="container">
+            <div class="section-heading">
+                <h2 class="section-title" id="section-title">(TV1) Títulos em Aberto</h2>
+                <button class="btn btn-success" id="export-excel-btn" type="button" style="background-color: #DC4405; color: white; border: none; display: flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 4px; font-weight: 600; font-size: 0.85rem; cursor: pointer;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    Exportar Excel
+                </button>
+            </div>
+            <div class="subtitle" id="selected-filtrarTabela">A partir de 23/10/2026</div>
+            <div class="filter-toolbar">
+                <div class="filter-control cedente-filter">
+                    <input type="text" id="filtro-cedente-input" class="btn" style="width: 100%; text-align: left; cursor: text; background: #fff;" placeholder="Filtrar por Cedente...">
+                </div>
+                <div class="toolbar">
+                    <button class="btn btn-primary" id="update-button">Atualizar</button>
+                    <div class="filter-control">
+                        <button class="btn" id="date-button" type="button" aria-expanded="false" aria-controls="date-popover">Período</button>
+                        <div class="filter-popover date-popover" id="date-popover" hidden style="min-width: 240px;">
+                            <label for="data-inicial">Data Inicial</label>
+                            <input id="data-inicial" type="date" class="form-control" style="margin-bottom: 10px;">
+                            
+                            <label for="data-final">Data Final</label>
+                            <input id="data-final" type="date" class="form-control" style="margin-bottom: 10px;">
+                            
+                            <button class="btn btn-primary" id="aplicar-periodo" style="width: 100%;">Filtrar Período</button>
+                        </div>
+                    </div>
+                    <div class="filter-control">
+                        <button class="btn" id="fund-button" type="button" aria-expanded="false" aria-controls="fund-popover">Fundo</button>
+                        <div class="filter-popover" id="fund-popover" hidden>
+                            <div class="fund-options" role="group" aria-label="Selecione um fundo">
+                                <button class="fund-option" type="button" aria-pressed="false">FAC</button>
+                                <button class="fund-option" type="button" aria-pressed="false">ICF</button>
+                                <button class="fund-option" type="button" aria-pressed="false">IMB</button>
+                                <button class="fund-option" type="button" aria-pressed="false">FN3</button>
+                                <button class="fund-option" type="button" aria-pressed="false">MHY</button>
+                                <button class="fund-option" type="button" aria-pressed="false">GEN</button>
+                                <button class="fund-option" type="button" aria-pressed="false">SEC</button>
+                                <button class="fund-option" type="button" aria-pressed="true">TV1</button>
+                                <button class="fund-option" type="button" aria-pressed="false">Todos</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabela com as colunas exigidas -->
+            <div class="table-container">
+                <div class="table-header-bar">Relação de Títulos em Aberto</div>
+                <div class="table-scroll">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Ingcodigo</th>
+                                <th>Empresa</th>
+                                <th>Vencimento</th>
+                                <th>Sacado</th>
+                                <th>Documento</th>
+                                <th>Data Ope.</th>
+                                <th>Operação</th>
+                                <th>IDG</th>
+                                <th>Loc Cobr</th>
+                                <th>Valor</th>
+                                <th>Abatimento</th>
+                                <th>Desconto</th>
+                                <th>Cedente</th>
+                                <th>CPF/CNPJ Sacado</th>
+                                <th>Nosso Número</th>
+                                <th>Valor Líquido</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Exemplo iterando via Thymeleaf ou exibindo dados estáticos se preferir -->
+                            <tr th:each="item : ${titulos}">
+                                <td th:text="${item.ingcodigo}">10023</td>
+                                <td th:text="${item.empresa}">Empresa Exemplo S.A.</td>
+                                <td th:text="${item.vencimento}">28/10/2026</td>
+                                <td th:text="${item.sacado}">Sacado Exemplo Ltda</td>
+                                <td th:text="${item.documento}">DOC-9876</td>
+                                <td th:text="${item.dataOpe}">20/10/2026</td>
+                                <td th:text="${item.operacao}">OP-5541</td>
+                                <td th:text="${item.idg}">IDG-44</td>
+                                <td th:text="${item.locCobr}">Banco 001</td>
+                                <td th:text="'R$ ' + ${item.valor}">R$ 1.500,00</td>
+                                <td th:text="'R$ ' + ${item.abatimento}">R$ 0,00</td>
+                                <td th:text="'R$ ' + ${item.desconto}">R$ 0,00</td>
+                                <td th:text="${item.cedente}">Cedente Principal</td>
+                                <td th:text="${item.cpfCnpjSacado}">12.345.678/0001-90</td>
+                                <td th:text="${item.nossoNumero}">123456789</td>
+                                <td th:text="'R$ ' + ${item.valorLiquido}">R$ 1.500,00</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('collapsed');
+        }
+
+        const dateButton = document.getElementById('date-button');
+        const datePopover = document.getElementById('date-popover');
+        const fundButton = document.getElementById('fund-button');
+        const fundPopover = document.getElementById('fund-popover');
+        const updateButton = document.getElementById('update-button');
+        const dataInicialInput = document.getElementById('data-inicial');
+        const dataFinalInput = document.getElementById('data-final');
+        const aplicarPeriodoBtn = document.getElementById('aplicar-periodo');
+        const selectedPeriodText = document.getElementById('selected-filtrarTabela');
+        const filtroCedenteInput = document.getElementById('filtro-cedente-input');
+        let fundoSelecionado = null;
+        const parametrosUrl = new URLSearchParams(window.location.search);
+        let documentoSelecionado = parametrosUrl.get('documento');
+        documentoSelecionado = documentoSelecionado ? documentoSelecionado.trim() : null;
+
+            document.getElementById('export-excel-btn').addEventListener('click', () => {
+        // 1. Captura os filtros atuais selecionados na tela
+        const selectedDateText = selectedPeriodText.textContent.trim();
+        const sectionTitleText = document.getElementById('section-title').textContent.trim(); // Ex: "(TV1) Títulos em Aberto"
+        
+        // Extrai o fundo ativo atual (ex: TV1, FAC, Todos)
+        let fundoAtivo = "Todos";
+        const activeFundOption = document.querySelector('.fund-option[aria-pressed="true"]');
+        if (activeFundOption) {
+            fundoAtivo = activeFundOption.textContent.trim();
+        }
+
+        const table = document.querySelector('.table-scroll table');
+        let csv = [];
+        
+        // Adiciona linhas de metadados/filtros aplicados no topo do arquivo Excel (CSV)
+        csv.push('"' + "Filtro - Fundo: " + fundoAtivo + '";"' + selectedDateText + '"');
+        csv.push('""'); // Linha em branco para separar do cabeçalho da tabela
+
+        // Exporta o cabeçalho e somente os títulos que passaram pelos filtros.
+        const rows = [
+            ...table.querySelectorAll('thead tr'),
+            ...Array.from(table.tBodies[0].rows).filter(row => row.style.display !== 'none')
+        ];
+        
+        rows.forEach(row => {
+            let cols = row.querySelectorAll('th, td');
+            let data = [];
+            cols.forEach(col => {
+                // Remove quebras de linha e ponto-e-vírgula para não corromper o arquivo
+                let text = col.innerText.replace(/(\r\n|\n|\r)/gm, "").replace(/;/g, ",");
+                data.push('"' + text + '"');
+            });
+            csv.push(data.join(';')); // Ponto e vírgula como separador padrão do Excel em português
+        });
+
+        // Cria o arquivo CSV com codificação UTF-8 para aceitar acentuação corretamente
+        let csvFile = new Blob(["\uFEFF" + csv.join('\n')], { type: 'text/csv;charset=utf-8;' });
+        let downloadLink = document.createElement('a');
+        downloadLink.href = window.URL.createObjectURL(csvFile);
+        
+        // Nome dinâmico do arquivo refletindo o fundo filtrado no momento da exportação
+        downloadLink.download = `titulos_em_abertos_${fundoAtivo.toLowerCase()}.csv`;
+        
+        // Dispara o download de forma automática
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+    });
+
+        updateButton.addEventListener('click', () => {
+            filtroCedenteInput.value = '';
+            dataInicialInput.value = '';
+            dataFinalInput.value = '';
+            selectedPeriodText.textContent = 'Todos os períodos';
+            fundoSelecionado = null;
+            documentoSelecionado = null;
+            parametrosUrl.delete('documento');
+            const queryString = parametrosUrl.toString();
+            window.history.replaceState({}, '', `${window.location.pathname}${queryString ? `?${queryString}` : ''}`);
+            fundPopover.querySelectorAll('.fund-option').forEach((option) => {
+                const selecionado = option.textContent.trim().toLocaleUpperCase() === 'TODOS';
+                option.setAttribute('aria-pressed', String(selecionado));
+            });
+            document.getElementById('section-title').textContent = '(Todos) Títulos em Aberto';
+            filtrarTabela();
+            setPopoverOpen(dateButton, datePopover, false);
+            setPopoverOpen(fundButton, fundPopover, false);
+        });
+
+        function setPopoverOpen(button, popover, isOpen) {
+            popover.hidden = !isOpen;
+            button.setAttribute('aria-expanded', String(isOpen));
+        }
+
+        function vencimentoParaIso(textoVencimento) {
+            const correspondencia = textoVencimento.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+            if (!correspondencia) return null;
+
+            const [, dia, mes, ano] = correspondencia;
+            const data = new Date(Number(ano), Number(mes) - 1, Number(dia));
+            if (data.getFullYear() !== Number(ano) ||
+                data.getMonth() !== Number(mes) - 1 ||
+                data.getDate() !== Number(dia)) {
+                return null;
+            }
+
+            return `${ano}-${mes}-${dia}`;
+        }
+
+        dateButton.addEventListener('click', () => {
+            const isOpen = datePopover.hidden;
+            setPopoverOpen(dateButton, datePopover, isOpen);
+            setPopoverOpen(fundButton, fundPopover, false);
+            updateButton.classList.remove('btn-primary');
+        });
+
+        // Função unificada para aplicar todos os filtros (Cedente + Período)
+        function filtrarTabela() {
+            const termoCedente = filtroCedenteInput ? filtroCedenteInput.value.toLowerCase().trim() : "";
+            const dataInicio = dataInicialInput.value;
+            const dataFim = dataFinalInput.value;
+
+            const linhasTabela = document.querySelectorAll('.table-scroll table tbody tr');
+
+            linhasTabela.forEach(linha => {
+                const colunas = linha.querySelectorAll('td');
+                const colunaEmpresa = colunas[1];
+                const colunaVencimento = colunas[2]; // Supondo que a coluna "Vencimento" seja a 3ª (índice 2)
+                const colunaDocumento = colunas[4];
+                const colunaCedente = colunas[12];     // Coluna "Cedente" (índice 12)
+
+                let atendeCedente = true;
+                let atendePeriodo = true;
+                let atendeFundo = true;
+                let atendeDocumento = true;
+
+                if (documentoSelecionado) {
+                    const documentoLinha = colunaDocumento ? colunaDocumento.textContent.trim() : '';
+                    atendeDocumento = documentoLinha.toLocaleUpperCase() === documentoSelecionado.toLocaleUpperCase();
+                }
+
+                if (fundoSelecionado) {
+                    const empresas = colunaEmpresa
+                        ? colunaEmpresa.textContent.toLocaleUpperCase().split('||').map(parte => parte.trim())
+                        : [];
+                    atendeFundo = empresas.includes(fundoSelecionado);
+                }
+
+                // 1. Validação do Cedente
+                if (colunaCedente && termoCedente) {
+                    const nomeCedente = colunaCedente.textContent.toLowerCase();
+                    if (!nomeCedente.includes(termoCedente)) {
+                        atendeCedente = false;
+                    }
+                }
+
+                // O período considera exclusivamente o vencimento do título.
+                if (colunaVencimento && (dataInicio || dataFim)) {
+                    const dataVencimento = vencimentoParaIso(colunaVencimento.textContent.trim());
+                    atendePeriodo = dataVencimento !== null &&
+                        (!dataInicio || dataVencimento >= dataInicio) &&
+                        (!dataFim || dataVencimento <= dataFim);
+                }
+
+                // Exibe ou oculta a linha com base nos filtros
+                if (atendeCedente && atendePeriodo && atendeFundo && atendeDocumento) {
+                    linha.style.display = '';
+                } else {
+                    linha.style.display = 'none';
+                }
+            });
+        }
+
+        if (documentoSelecionado) {
+            selectedPeriodText.textContent = `Documento selecionado: ${documentoSelecionado}`;
+        }
+        filtrarTabela();
+
+        // Eventos para acionar os filtros
+        if (filtroCedenteInput) {
+            filtroCedenteInput.addEventListener('keyup', filtrarTabela);
+        }
+
+        aplicarPeriodoBtn.addEventListener('click', () => {
+            const dataInicial = dataInicialInput.value.split('-').reverse().join('/');
+            const dataFinal = dataFinalInput.value.split('-').reverse().join('/');
+            if (dataInicial && dataFinal) {
+                selectedPeriodText.textContent = `Período de ${dataInicial} até ${dataFinal}`;
+            } else if (dataInicial) {
+                selectedPeriodText.textContent = `A partir de ${dataInicial}`;
+            } else if (dataFinal) {
+                selectedPeriodText.textContent = `Até ${dataFinal}`;
+            }
+            filtrarTabela();
+            setPopoverOpen(dateButton, datePopover, false);
+        });
+
+        fundButton.addEventListener('click', () => {
+            const isOpen = fundPopover.hidden;
+            setPopoverOpen(fundButton, fundPopover, isOpen);
+            setPopoverOpen(dateButton, datePopover, false);
+        });
+
+        fundPopover.addEventListener('click', (event) => {
+            const option = event.target.closest('.fund-option');
+            if (!option) return;
+
+            fundPopover.querySelectorAll('.fund-option').forEach((fundOption) => {
+                fundOption.setAttribute('aria-pressed', String(fundOption === option));
+            });
+            document.getElementById('section-title').textContent = `(${option.textContent.trim()}) Títulos em Aberto`;
+            fundoSelecionado = option.textContent.trim().toLocaleUpperCase() === 'TODOS'
+                ? null
+                : option.textContent.trim().toLocaleUpperCase();
+            filtrarTabela();
+            setPopoverOpen(fundButton, fundPopover, false);
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!event.target.closest('.filter-control')) {
+                setPopoverOpen(dateButton, datePopover, false);
+                setPopoverOpen(fundButton, fundPopover, false);
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                setPopoverOpen(dateButton, datePopover, false);
+                setPopoverOpen(fundButton, fundPopover, false);
+            }
+        });
+    </script>
+</body>
+</html>
