@@ -35,7 +35,7 @@ Para executar o script, você precisará de:
 - **Tabelas de Origem Necessárias:**
   - `tbl_Parametros` (Registros de pesquisa por periodo)
 - Permissões de leitura nas tabelas de origem e permissão de criação/inserção na tabela/view de destino.
-
+- Java 17 e Maven (telas).
 ---
 
 ## 🚀 Como Executar
@@ -44,3 +44,6 @@ Para executar o script, você precisará de:
 ```bash
 git clone [https://github.com/KarinaBeilich/Conciliacao.depositos.git](https://github.com/KarinaBeilich/Conciliacao.depositos.git)
 cd Conciliacao.depositos/Desktop/conciliacao.dep
+
+- **Telas:** dentro de `telas/`, rode `mvn spring-boot:run` e abra
+`http://localhost:8080/conciliacao` ou `http://localhost:8080/titulos-abertos`.
