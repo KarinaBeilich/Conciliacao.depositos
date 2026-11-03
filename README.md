@@ -25,6 +25,12 @@ O objetivo deste script é identificar divergências, pendências e correspondê
   - `FORA DA DATA - VERIFICAR`: Registro presente no sistema e no extrato bancário, mas o titulo possui vencimento muito distante do parâmetro, solicitando então a verificação com o setor responsavel.
 - **Tratamento de Tolerâncias:** Ajuste para pequenas diferenças operacionais (ex: compensação em D-2; D-1 e D-0).
 
+
+
+---
+## Tela de demonstração 
+<img width="1760" height="554" alt="image" src="https://github.com/user-attachments/assets/3f21231d-2b0c-4bac-85d2-0b6049a2f24b" />
+
 ---
 
 ## 📌 Pré-requisitos
